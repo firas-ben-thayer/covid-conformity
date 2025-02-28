@@ -1,0 +1,90 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>DeepNeuronic Project</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            margin: 0;
+            padding: 20px;
+            background-color: #f5f5f5;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            min-height: 100vh;
+        }
+        .container {
+            max-width: 1000px;
+            text-align: center;
+        }
+        h1 {
+            color: #333;
+            margin-bottom: 30px;
+        }
+        .options {
+            display: flex;
+            justify-content: center;
+            gap: 30px;
+            flex-wrap: wrap;
+        }
+        .option {
+            background-color: white;
+            border-radius: 8px;
+            box-shadow: 0 4px 8px rgba(0,0,0,0.1);
+            width: 250px;
+            height: 300px;
+            padding: 20px;
+            transition: transform 0.3s, box-shadow 0.3s;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            text-decoration: none;
+            color: #333;
+        }
+        .option:hover {
+            transform: translateY(-5px);
+            box-shadow: 0 6px 12px rgba(0,0,0,0.15);
+        }
+        .option-icon {
+            font-size: 60px;
+            margin-bottom: 20px;
+            color: #007BFF;
+        }
+        .option h2 {
+            margin-bottom: 15px;
+        }
+        .option p {
+            color: #666;
+            line-height: 1.5;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>Welcome to DeepNeuronic Project</h1>
+        
+        <div class="options">
+            <a href="webcam.html" class="option">
+                <div class="option-icon">📹</div>
+                <h2>Webcam</h2>
+                <p>Use your webcam for real-time face mask detection and safety distance monitoring</p>
+            </a>
+            
+            <a href="video.html" class="option">
+                <div class="option-icon">🎥</div>
+                <h2>Video</h2>
+                <p>Upload and analyze video files for face detection</p>
+            </a>
+            
+            <a href="image.html" class="option">
+                <div class="option-icon">🖼️</div>
+                <h2>Image</h2>
+                <p>Process static images to detect faces</p>
+            </a>
+        </div>
+    </div>
+</body>
+</html>

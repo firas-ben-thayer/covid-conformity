@@ -1,0 +1,706 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Image Analysis - Face Mask Detection with Safety Distance</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            margin: 0;
+            padding: 20px;
+            background-color: #f5f5f5;
+        }
+        .nav-container {
+            width: 100%;
+            display: flex;
+            justify-content: flex-start;
+            margin-bottom: 15px;
+        }
+        .back-button {
+            display: inline-block;
+            padding: 8px 15px;
+            background-color: #6c757d;
+            color: white;
+            border-radius: 5px;
+            text-decoration: none;
+            font-weight: bold;
+            transition: background-color 0.3s;
+        }
+        .back-button:hover {
+            background-color: #5a6268;
+            text-decoration: none;
+            color: white;
+        }
+        .container {
+            max-width: 1200px;
+            margin: 0 auto;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+        }
+        .image-container {
+            position: relative;
+            margin-bottom: 20px;
+            max-width: 100%;
+        }
+        #image-display {
+            max-width: 640px;
+            max-height: 480px;
+            border: 3px solid #ccc;
+            border-radius: 8px;
+            display: none;
+        }
+        #overlay-canvas {
+            position: absolute;
+            top: 0;
+            left: 0;
+            display: none;
+        }
+        .upload-area {
+            width: 640px;
+            height: 300px;
+            border: 3px dashed #ccc;
+            border-radius: 8px;
+            display: flex;
+            flex-direction: column;
+            justify-content: center;
+            align-items: center;
+            margin-bottom: 20px;
+            background-color: #f9f9f9;
+            transition: background-color 0.3s;
+            cursor: pointer;
+        }
+        .upload-area:hover {
+            background-color: #f0f0f0;
+            border-color: #aaa;
+        }
+        .upload-icon {
+            font-size: 48px;
+            color: #007BFF;
+            margin-bottom: 20px;
+        }
+        .upload-text {
+            font-size: 18px;
+            color: #666;
+        }
+        .upload-subtext {
+            font-size: 14px;
+            color: #888;
+            margin-top: 10px;
+        }
+        .button-container {
+            display: flex;
+            gap: 10px;
+            margin-bottom: 20px;
+        }
+        button {
+            padding: 10px 15px;
+            border: none;
+            border-radius: 5px;
+            background-color: #007BFF;
+            color: white;
+            font-weight: bold;
+            cursor: pointer;
+            transition: background-color 0.3s;
+        }
+        button:hover {
+            background-color: #0056b3;
+        }
+        button.active {
+            background-color: #28a745;
+        }
+        button:disabled {
+            background-color: #cccccc;
+            cursor: not-allowed;
+        }
+        .results {
+            width: 100%;
+            padding: 15px;
+            background-color: white;
+            border-radius: 8px;
+            box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+            margin-bottom: 20px;
+        }
+        .bird-eye-container {
+            width: 100%;
+            display: none;
+            margin-top: 20px;
+            flex-direction: column;
+            align-items: center;
+        }
+        #bird-eye-view {
+            background-color: #222;
+            border-radius: 8px;
+            border: 3px solid #444;
+            margin-bottom: 10px;
+        }
+        .status {
+            display: flex;
+            justify-content: space-between;
+            margin-bottom: 10px;
+        }
+        .status-indicator {
+            display: flex;
+            align-items: center;
+            margin-right: 15px;
+        }
+        .status-dot {
+            width: 15px;
+            height: 15px;
+            border-radius: 50%;
+            margin-right: 5px;
+        }
+        .safe-dot {
+            background-color: #28a745;
+        }
+        .unsafe-dot {
+            background-color: #dc3545;
+        }
+        .face-dot {
+            background-color: #007BFF;
+        }
+        #file-input {
+            display: none;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <div class="nav-container">
+            <a href="index.html" class="back-button">← Back to Home</a>
+        </div>
+        <h1>Image Analysis - Face Mask Detection with Safety Distance</h1>
+        
+        <div class="image-container">
+            <div class="upload-area" id="upload-area">
+                <div class="upload-icon">🖼️</div>
+                <div class="upload-text">Click or drag image here to upload</div>
+                <div class="upload-subtext">Supports JPG, PNG, JPEG</div>
+            </div>
+            <img id="image-display" alt="Uploaded image">
+            <canvas id="overlay-canvas"></canvas>
+            <input type="file" id="file-input" accept="image/png, image/jpeg, image/jpg">
+        </div>
+        
+        <div class="button-container">
+            <button id="detect-faces-button" disabled>Detect Faces</button>
+            <button id="detect-masks-button" disabled>Detect Masks</button>
+            <button id="safety-distance-button" disabled>Safety Distance</button>
+            <button id="reset-button" disabled>Reset Image</button>
+        </div>
+        
+        <div class="results" id="results-container">
+            <h3>Results:</h3>
+            <div id="results">Upload an image and click detection buttons to begin analysis.</div>
+        </div>
+        
+        <div class="bird-eye-container" id="bird-eye-container">
+            <h3>Bird's Eye View - Safety Distance Visualization</h3>
+            <div class="status">
+                <div class="status-indicator">
+                    <div class="status-dot face-dot"></div>
+                    <span>Person</span>
+                </div>
+                <div class="status-indicator">
+                    <div class="status-dot safe-dot"></div>
+                    <span>Safe Distance</span>
+                </div>
+                <div class="status-indicator">
+                    <div class="status-dot unsafe-dot"></div>
+                    <span>Unsafe Distance</span>
+                </div>
+            </div>
+            <canvas id="bird-eye-view" width="400" height="400"></canvas>
+        </div>
+    </div>
+
+    <script>
+        const fileInput = document.getElementById('file-input');
+        const uploadArea = document.getElementById('upload-area');
+        const imageDisplay = document.getElementById('image-display');
+        const overlayCanvas = document.getElementById('overlay-canvas');
+        const overlayCtx = overlayCanvas.getContext('2d');
+        const birdEyeCanvas = document.getElementById('bird-eye-view');
+        const birdEyeCtx = birdEyeCanvas.getContext('2d');
+        const resultsContainer = document.getElementById('results');
+        const detectFacesButton = document.getElementById('detect-faces-button');
+        const detectMasksButton = document.getElementById('detect-masks-button');
+        const safetyDistanceButton = document.getElementById('safety-distance-button');
+        const resetButton = document.getElementById('reset-button');
+        const birdEyeContainer = document.getElementById('bird-eye-container');
+
+        let ws = null;
+        let imageLoaded = false;
+        let detectionActive = false;
+        let maskDetectionActive = false;
+        let safetyDistanceActive = false;
+        let lastResult = null;
+
+        // Set up WebSocket connection when page loads
+        document.addEventListener('DOMContentLoaded', () => {
+            startWebSocket();
+        });
+
+        // Handle drag and drop events
+        uploadArea.addEventListener('dragover', (e) => {
+            e.preventDefault();
+            uploadArea.style.borderColor = '#007BFF';
+            uploadArea.style.backgroundColor = '#f0f0f0';
+        });
+
+        uploadArea.addEventListener('dragleave', () => {
+            uploadArea.style.borderColor = '#ccc';
+            uploadArea.style.backgroundColor = '#f9f9f9';
+        });
+
+        uploadArea.addEventListener('drop', (e) => {
+            e.preventDefault();
+            uploadArea.style.borderColor = '#ccc';
+            uploadArea.style.backgroundColor = '#f9f9f9';
+            
+            if (e.dataTransfer.files.length) {
+                processFile(e.dataTransfer.files[0]);
+            }
+        });
+
+        // Handle click on upload area
+        uploadArea.addEventListener('click', () => {
+            fileInput.click();
+        });
+
+        // Handle file input change
+        fileInput.addEventListener('change', (e) => {
+            if (e.target.files.length) {
+                processFile(e.target.files[0]);
+            }
+        });
+
+        // Reset image and detections
+        resetButton.addEventListener('click', () => {
+            uploadArea.style.display = 'flex';
+            imageDisplay.style.display = 'none';
+            overlayCanvas.style.display = 'none';
+            birdEyeContainer.style.display = 'none';
+            
+            detectionActive = false;
+            maskDetectionActive = false;
+            safetyDistanceActive = false;
+            imageLoaded = false;
+            
+            detectFacesButton.classList.remove('active');
+            detectMasksButton.classList.remove('active');
+            safetyDistanceButton.classList.remove('active');
+            
+            detectFacesButton.disabled = true;
+            detectMasksButton.disabled = true;
+            safetyDistanceButton.disabled = true;
+            resetButton.disabled = true;
+            
+            overlayCtx.clearRect(0, 0, overlayCanvas.width, overlayCanvas.height);
+            
+            resultsContainer.textContent = "Upload an image and click detection buttons to begin analysis.";
+        });
+
+        // Process the uploaded file
+        function processFile(file) {
+            if (!file.type.match('image.*')) {
+                alert('Please upload an image file (JPEG, JPG, or PNG).');
+                return;
+            }
+            
+            const reader = new FileReader();
+            
+            reader.onload = function(e) {
+                // Display the image
+                imageDisplay.src = e.target.result;
+                imageDisplay.onload = function() {
+                    // Hide upload area and show image
+                    uploadArea.style.display = 'none';
+                    imageDisplay.style.display = 'block';
+                    
+                    // Set up overlay canvas
+                    overlayCanvas.width = imageDisplay.width;
+                    overlayCanvas.height = imageDisplay.height;
+                    overlayCanvas.style.display = 'block';
+                    
+                    // Enable buttons
+                    detectFacesButton.disabled = false;
+                    detectMasksButton.disabled = false;
+                    safetyDistanceButton.disabled = false;
+                    resetButton.disabled = false;
+                    
+                    imageLoaded = true;
+                };
+            };
+            
+            reader.readAsDataURL(file);
+        }
+
+        // Toggle face detection
+        detectFacesButton.addEventListener('click', () => {
+            if (!imageLoaded) return;
+            
+            detectionActive = !detectionActive;
+            if (detectionActive) {
+                detectFacesButton.classList.add('active');
+                analyzeImage();
+            } else {
+                detectFacesButton.classList.remove('active');
+                overlayCtx.clearRect(0, 0, overlayCanvas.width, overlayCanvas.height);
+                if (!maskDetectionActive && !safetyDistanceActive) {
+                    resultsContainer.textContent = "No detection active. Select a detection option to begin.";
+                } else {
+                    analyzeImage();
+                }
+            }
+        });
+
+        // Toggle mask detection
+        detectMasksButton.addEventListener('click', () => {
+            if (!imageLoaded) return;
+            
+            maskDetectionActive = !maskDetectionActive;
+            if (maskDetectionActive) {
+                detectMasksButton.classList.add('active');
+                if (!detectionActive) {
+                    detectionActive = true;
+                    detectFacesButton.classList.add('active');
+                }
+                analyzeImage();
+            } else {
+                detectMasksButton.classList.remove('active');
+                if (!detectionActive && !safetyDistanceActive) {
+                    overlayCtx.clearRect(0, 0, overlayCanvas.width, overlayCanvas.height);
+                    resultsContainer.textContent = "No detection active. Select a detection option to begin.";
+                } else {
+                    analyzeImage();
+                }
+            }
+        });
+
+        // Toggle safety distance
+        safetyDistanceButton.addEventListener('click', () => {
+            if (!imageLoaded) return;
+            
+            safetyDistanceActive = !safetyDistanceActive;
+            if (safetyDistanceActive) {
+                safetyDistanceButton.classList.add('active');
+                birdEyeContainer.style.display = 'flex';
+                if (!detectionActive) {
+                    detectionActive = true;
+                    detectFacesButton.classList.add('active');
+                }
+                analyzeImage();
+            } else {
+                safetyDistanceButton.classList.remove('active');
+                birdEyeContainer.style.display = 'none';
+                if (!detectionActive && !maskDetectionActive) {
+                    overlayCtx.clearRect(0, 0, overlayCanvas.width, overlayCanvas.height);
+                    resultsContainer.textContent = "No detection active. Select a detection option to begin.";
+                } else {
+                    analyzeImage();
+                }
+            }
+        });
+
+        // Start WebSocket connection
+        function startWebSocket() {
+            const protocol = window.location.protocol === 'https:' ? 'wss:' : 'ws:';
+            const host = window.location.hostname || 'localhost';
+            const port = '8000';
+            console.log('Connecting to WebSocket:', `${protocol}//${host}:${port}/ws`);
+            ws = new WebSocket(`${protocol}//${host}:${port}/ws`);
+            
+            ws.onopen = function() {
+                console.log('WebSocket connection established');
+            };
+            
+            ws.onmessage = function(event) {
+                const message = JSON.parse(event.data);
+                if (message.type === 'result') {
+                    processResult(message.result);
+                    console.log('Received result:', message.result);
+                }
+            };
+            
+            ws.onerror = function(error) {
+                console.error('WebSocket error:', error);
+                alert('Error connecting to server. Please try again later.');
+            };
+            
+            ws.onclose = function() {
+                console.log('WebSocket connection closed');
+                // Try to reconnect after 2 seconds
+                setTimeout(() => startWebSocket(), 2000);
+            };
+        }
+
+        // Send image to server for analysis
+        function analyzeImage() {
+            if (!ws || ws.readyState !== WebSocket.OPEN || !imageLoaded) return;
+            
+            // Convert image to base64
+            const canvas = document.createElement('canvas');
+            canvas.width = imageDisplay.width;
+            canvas.height = imageDisplay.height;
+            const ctx = canvas.getContext('2d');
+            ctx.drawImage(imageDisplay, 0, 0, canvas.width, canvas.height);
+            
+            // Convert canvas to base64 image
+            const imageData = canvas.toDataURL('image/jpeg', 0.8);
+            const base64Data = imageData.replace('data:image/jpeg;base64,', '');
+            
+            // Show loading message
+            resultsContainer.textContent = "Analyzing image...";
+            
+            // Send data to server with detection preferences
+            ws.send(JSON.stringify({
+                type: 'image',
+                image: base64Data,
+                detect_faces: detectionActive,
+                detect_masks: maskDetectionActive,
+                safety_distance: safetyDistanceActive
+            }));
+        }
+
+        // Process detection results
+        function processResult(result) {
+            lastResult = result;
+        
+            // Clear previous overlay
+            overlayCtx.clearRect(0, 0, overlayCanvas.width, overlayCanvas.height);
+            
+            // Only show results if any detection is active
+            if (!detectionActive && !maskDetectionActive && !safetyDistanceActive) {
+                resultsContainer.innerHTML = "No detection active. Select a detection option to begin.";
+                return;
+            }
+            
+            // Display results in text form
+            let resultText = detectionActive ? `Total faces detected: ${result.total_faces}` : "Face detection inactive";
+            
+            // Add face detection overlays
+            if (detectionActive && result.faces.length > 0) {
+                result.faces.forEach((face, index) => {
+                    const [x1, y1, x2, y2] = face.box;
+                    const width = x2 - x1;
+                    const height = y2 - y1;
+                    
+                    // Draw face box
+                    overlayCtx.lineWidth = 2;
+                    overlayCtx.strokeStyle = '#2196F3';
+                    overlayCtx.strokeRect(x1, y1, width, height);
+                    
+                    // Draw face index
+                    overlayCtx.fillStyle = 'rgba(33, 150, 243, 0.7)';
+                    overlayCtx.fillRect(x1, y1 - 20, 20, 20);
+                    overlayCtx.fillStyle = 'white';
+                    overlayCtx.font = '16px Arial';
+                    overlayCtx.fillText(index, x1 + 5, y1 - 5);
+                    
+                    // Draw mask status if enabled
+                    if (maskDetectionActive) {
+                        const isMask = face.mask_status === 'mask';
+                        overlayCtx.fillStyle = isMask ? 'rgba(76, 175, 80, 0.7)' : 'rgba(244, 67, 54, 0.7)';
+                        overlayCtx.fillRect(x1 + width - 80, y1 - 20, 80, 20);
+                        overlayCtx.fillStyle = 'white';
+                        overlayCtx.font = '12px Arial';
+                        overlayCtx.fillText(isMask ? 'Mask' : 'No Mask', x1 + width - 75, y1 - 5);
+                        
+                        resultText += `\nFace ${index}: ${isMask ? 'Wearing a mask' : 'Not wearing a mask'} (Confidence: ${(face.mask_confidence * 100).toFixed(2)}%)`;
+                    }
+                });
+            }
+            
+            // Draw distance lines if safety distance is enabled
+            if (safetyDistanceActive && result.faces.length > 0) {
+                if (result.distances.length > 0) {
+                    result.distances.forEach(dist => {
+                        const [x1, y1, x2, y2] = dist.points;
+                        
+                        // Draw line between faces
+                        overlayCtx.beginPath();
+                        overlayCtx.moveTo(x1, y1);
+                        overlayCtx.lineTo(x2, y2);
+                        overlayCtx.lineWidth = 2;
+                        overlayCtx.strokeStyle = dist.is_safe ? '#4CAF50' : '#F44336';
+                        overlayCtx.stroke();
+                        
+                        // Draw distance label
+                        const midX = (x1 + x2) / 2;
+                        const midY = (y1 + y2) / 2;
+                        overlayCtx.fillStyle = 'rgba(0, 0, 0, 0.7)';
+                        const distText = `${dist.distance_meters.toFixed(2)}m`;
+                        const textWidth = overlayCtx.measureText(distText).width + 10;
+                        overlayCtx.fillRect(midX - textWidth/2, midY - 10, textWidth, 20);
+                        overlayCtx.fillStyle = 'white';
+                        overlayCtx.textAlign = 'center';
+                        overlayCtx.textBaseline = 'middle';
+                        overlayCtx.fillText(distText, midX, midY);
+                        overlayCtx.textAlign = 'start';
+                        overlayCtx.textBaseline = 'alphabetic';
+                        
+                        resultText += `\nDistance between Face ${dist.face1_index} and Face ${dist.face2_index}: ${dist.distance_meters.toFixed(2)}m (${dist.is_safe ? 'Safe' : 'Unsafe'})`;
+                    });
+                }
+                // Draw bird's eye view
+                drawBirdEyeView(result);
+            } else if (safetyDistanceActive) {
+                drawEmptyBirdEyeView();
+            }
+            
+            resultsContainer.innerHTML = resultText.replace(/\n/g, '<br>');
+        }
+        
+        // Draw bird's eye view
+        function drawBirdEyeView(result) {
+            const canvas = birdEyeCanvas;
+            const ctx = birdEyeCtx;
+            const padding = 50;
+            const centerX = canvas.width / 2;
+            const centerY = canvas.height / 2;
+            
+            // Clear canvas
+            ctx.clearRect(0, 0, canvas.width, canvas.height);
+            
+            // Draw background grid
+            ctx.strokeStyle = '#444';
+            ctx.lineWidth = 1;
+            
+            // Draw horizontal grid lines
+            for (let i = padding; i < canvas.height - padding; i += 30) {
+                ctx.beginPath();
+                ctx.moveTo(padding, i);
+                ctx.lineTo(canvas.width - padding, i);
+                ctx.stroke();
+            }
+            
+            // Draw vertical grid lines
+            for (let i = padding; i < canvas.width - padding; i += 30) {
+                ctx.beginPath();
+                ctx.moveTo(i, padding);
+                ctx.lineTo(i, canvas.height - padding);
+                ctx.stroke();
+            }
+            
+            if (result.faces.length < 1) {
+                // No faces detected
+                ctx.fillStyle = 'white';
+                ctx.font = '16px Arial';
+                ctx.textAlign = 'center';
+                ctx.fillText('No faces detected', centerX, centerY);
+                return;
+            }
+            
+            // Calculate scale based on the image dimensions
+            const imageWidth = imageDisplay.width;
+            const imageHeight = imageDisplay.height;
+            
+            // Map face positions to bird's eye view
+            const positions = [];
+            result.faces.forEach(face => {
+                const [x1, y1, x2, y2] = face.box;
+                const centerX = (x1 + x2) / 2;
+                const centerY = y2; // Use bottom of bounding box
+                
+                // Normalize to 0-1 range
+                const normalizedX = centerX / imageWidth;
+                const normalizedY = centerY / imageHeight;
+                
+                // Map to canvas coordinates
+                const canvasX = padding + normalizedX * (canvas.width - 2 * padding);
+                const canvasY = padding + normalizedY * (canvas.height - 2 * padding);
+                
+                positions.push({
+                    index: positions.length,
+                    x: canvasX,
+                    y: canvasY,
+                    hasMask: face.mask_status === 'mask'
+                });
+            });
+            
+            // Draw connections between faces
+            result.distances.forEach(dist => {
+                const face1 = positions[dist.face1_index];
+                const face2 = positions[dist.face2_index];
+                
+                ctx.beginPath();
+                ctx.moveTo(face1.x, face1.y);
+                ctx.lineTo(face2.x, face2.y);
+                ctx.strokeStyle = dist.is_safe ? '#28a745' : '#dc3545';
+                ctx.lineWidth = 2;
+                ctx.stroke();
+                
+                // Draw distance label
+                const midX = (face1.x + face2.x) / 2;
+                const midY = (face1.y + face2.y) / 2;
+                ctx.fillStyle = 'white';
+                ctx.font = '12px Arial';
+                ctx.textAlign = 'center';
+                ctx.textBaseline = 'middle';
+                ctx.fillText(`${dist.distance_meters.toFixed(1)}m`, midX, midY - 10);
+            });
+            
+            // Draw faces
+            positions.forEach(pos => {
+                // Draw person circle
+                ctx.beginPath();
+                ctx.arc(pos.x, pos.y, 15, 0, Math.PI * 2);
+                ctx.fillStyle = '#007BFF';
+                ctx.fill();
+                
+                // Add mask indicator
+                if (maskDetectionActive) {
+                    const indicatorSize = 8;
+                    ctx.beginPath();
+                    ctx.arc(pos.x + 10, pos.y - 10, indicatorSize, 0, Math.PI * 2);
+                    ctx.fillStyle = pos.hasMask ? '#28a745' : '#dc3545';
+                    ctx.fill();
+                }
+                
+                // Add face index
+                ctx.fillStyle = 'white';
+                ctx.font = '12px Arial';
+                ctx.textAlign = 'center';
+                ctx.textBaseline = 'middle';
+                ctx.fillText(pos.index.toString(), pos.x, pos.y);
+            });
+        }
+        
+        // Draw empty bird's eye view with message
+        function drawEmptyBirdEyeView() {
+            const ctx = birdEyeCtx;
+            ctx.clearRect(0, 0, birdEyeCanvas.width, birdEyeCanvas.height);
+            
+            const padding = 50;
+            
+            // Draw background grid
+            ctx.strokeStyle = '#444';
+            ctx.lineWidth = 1;
+            
+            // Draw horizontal grid lines
+            for (let i = padding; i < birdEyeCanvas.height - padding; i += 30) {
+                ctx.beginPath();
+                ctx.moveTo(padding, i);
+                ctx.lineTo(birdEyeCanvas.width - padding, i);
+                ctx.stroke();
+            }
+            
+            // Draw vertical grid lines
+            for (let i = padding; i < birdEyeCanvas.width - padding; i += 30) {
+                ctx.beginPath();
+                ctx.moveTo(i, padding);
+                ctx.lineTo(i, birdEyeCanvas.height - padding);
+                ctx.stroke();
+            }
+            
+            // Draw message
+            ctx.fillStyle = 'white';
+            ctx.font = '16px Arial';
+            ctx.textAlign = 'center';
+            ctx.fillText('No faces detected', birdEyeCanvas.width / 2, birdEyeCanvas.height / 2);
+        }
+    </script>
+</body>
+</html>
