@@ -1,7 +1,3 @@
-Collecting workspace information# Face Mask Detection with Safety Distance Monitoring System
-
-This repository contains a computer vision solution that detects face masks and monitors safety distances between people in images, videos, and real-time webcam feeds.
-
 ## Project Overview
 
 This project implements a complete computer vision pipeline that:
