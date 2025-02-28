@@ -7,7 +7,9 @@ This project implements a complete computer vision pipeline that:
 4. Visualizes safety compliance through a web interface
 
 The solution uses a PyTorch-based face mask detection model with a ResNet50 backbone and communicates with a frontend interface through WebSockets for real-time processing.
-![Alt text](./demo.gif)
+<p align="center">
+  <img src="demo.gif" alt="Example GIF">
+</p>
 ## Features
 
 - **Multiple Input Sources**:
